@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#编译器工具相关配置
+VBOX_SP_MACHINE_NAEM="xp-keil"
+VBOX_SP_USER_NAME="Administrator"
+VBOX_BUILD_PLATFORM_PROGRAM="C:\Keil_v5\UV4\UV4.exe"
+VBOX_BUILD_EXE_NAEM="UV4.exe"
+# VBOX_BUILD_PLATFORM_PATH="C:\Keil_v5\UV4"
+
+#项目工程文件配置
+VBOX_SP_PROJECT_NAME="D:\xp_sp\stm32\led\USER\LED.uvprojx"
+VBOX_SP_OUTPUT_NAME="D:\xp_sp\stm32\led\Build_Output.txt"
+# VBOX_SP_SRC_PATH="D:\xp_sp\stm32\led\USER"
+# VBOX_SP_OUTPUT_PATH="D:\xp_sp\stm32\led"
+
+#LOG输出日志
+VBOX_LOGO="SP PROJECT BUILD START"
+
+echo $VBOX_SP_MACHINE_NAEM
+echo $VBOX_BUILD_PLATFORM_PROGRAM
+
+#无图形化界面启动 --type headless
+# VBoxManage startvm "xp-keil" --type headless
+
+#启动sp编译流程
+VBoxManage guestcontrol $VBOX_SP_MACHINE_NAEM -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_NAME
+
+
+
+
+
+
+

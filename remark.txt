@@ -1,0 +1,41 @@
+1.虚拟机名称
+    Virtual machine
+    Win_SP
+    xp-keil
+
+2.linux命令行内操作指令
+    启动虚拟机指令
+        VBoxManage startvm "xp-keil" --type headless
+    关闭虚拟机指令
+        VBoxManage controlvm "xp-keil" poweroff
+    暂停虚拟机指令
+        VBoxManage controlvm "xp-keil" savestate
+    控制虚拟机启动应用程序
+3.windows xp命令行内操作指令
+    编译项目工程
+    C:\Keil_v5\UV4\UV4.exe -r D:\xp_sp\stm32\led\USER\LED.uvprojx -o D:\xp_cmdline\Build_Output.txt
+
+VBoxManage guestcontrol "xp-keil" -v run  --exe "C:\Keil_v5\UV4\UV4.exe" --username Administrator -- UV4.exe -r "D:\xp_sp\stm32\led\USER\LED.uvprojx" -o "D:\xp_sp\stm32\led\Build_Output.txt"
+启动与管理虚拟机
+启动虚拟机
+
+VBoxManage startvm UbuntuRDHome --type headless
+复制
+保持状态关闭虚拟机[推荐]
+
+VBoxManage controlvm UbuntuRDHome savestate
+
+放弃已保存的状态
+    VBoxManage discardstate UbuntuRDHome
+复制
+断电关闭虚拟机
+
+VBoxManage controlvm UbuntuRDHome poweroff
+复制
+正常关机[不能彻底关闭，一直处于stopping状态]
+
+VBoxManage controlvm UbuntuRDHome acpipowerbutton
+复制
+管理虚拟机更多命令
+
+VBoxManage controlvm UbuntuRDHome XXX
