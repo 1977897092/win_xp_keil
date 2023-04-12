@@ -8,26 +8,45 @@ VBOX_BUILD_EXE_NAEM="UV4.exe"
 # VBOX_BUILD_PLATFORM_PATH="C:\Keil_v5\UV4"
 
 #项目工程文件配置
+#打包文件夹路径
+SERVER_SP_PACKAGES_PATH="/home/dyj/User_Code/win_xp_sfile"
+
+
+# server端源码相关配置
+SERVER_SP_PROJECT_NAME="/home/dyj/User_Share/xp_sp/stm32/led/USER/LED.uvprojx"
+SERVER_SP_OUTPUT_PATH="/home/dyj/User_Share/xp_sp/stm32/led/OBJ"
+SERVER_SP_OUTPUT_TARGET="/home/dyj/User_Share/xp_sp/stm32/led/OBJ/LED.axf"
+SERVER_SP_OUTPUT_LOG_NAME="/home/dyj/User_Share/xp_sp/stm32/led/Build_Output.txt"
+SERVER_SP_OUTPUT_DATA="$SERVER_SP_OUTPUT_PATH/* $SERVER_SP_PACKAGES_PATH/* $SERVER_SP_OUTPUT_LOG_NAME"
+
+# winxp端相关配置
 VBOX_SP_PROJECT_NAME="D:\xp_sp\stm32\led\USER\LED.uvprojx"
-VBOX_SP_OUTPUT_NAME="D:\xp_sp\stm32\led\Build_Output.txt"
+VBOX_SP_OUTPUT_LOG_NAME="D:\xp_sp\stm32\led\Build_Output.txt"
 # VBOX_SP_SRC_PATH="D:\xp_sp\stm32\led\USER"
 # VBOX_SP_OUTPUT_PATH="D:\xp_sp\stm32\led"
 
 #LOG输出日志
 VBOX_LOGO="SP PROJECT BUILD START"
-
 echo $VBOX_SP_MACHINE_NAEM
 echo $VBOX_BUILD_PLATFORM_PROGRAM
 
-#无图形化界面启动 --type headless
+#判断虚拟guest machine是否在线，如果在线则关闭重启或等待
+#启动无图形化界面编译器系统平台 --type headless
 # VBoxManage startvm "xp-keil" --type headless
 
+#清理编译产生的中间文件
+rm -rf $SERVER_SP_OUTPUT_DATA
+
+#将server端共享文件夹挂载到虚拟目标机上(guest)。
+#输出guest磁盘挂载情况
+
+
 #启动sp编译流程
-VBoxManage guestcontrol $VBOX_SP_MACHINE_NAEM -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_NAME
+VBoxManage guestcontrol $VBOX_SP_MACHINE_NAEM -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_LOG_NAME
 
 
 
 
+#复制生成的文件进入到打包路径中
 
-
-
+cp $SERVER_SP_OUTPUT_TARGET $SERVER_SP_PACKAGES_PATH
