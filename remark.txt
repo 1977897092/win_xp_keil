@@ -11,11 +11,16 @@
     暂停虚拟机指令
         VBoxManage controlvm "xp-keil" savestate
     控制虚拟机启动应用程序
+        VBoxManage guestcontrol "xp-keil" -v run  --exe "C:\Keil_v5\UV4\UV4.exe" --username Administrator -- UV4.exe -r "D:\xp_sp\stm32\led\USER\LED.uvprojx" -o "D:\xp_sp\stm32\led\Build_Output.txt"
+    判断虚拟机是否完成启动
+        VBoxManage guestcontrol "xp-keil" stat "C:\Keil_v5\UV4\UV4.exe" --username Administrator | grep "found"
+
+if echo "hello" | grep "e"; then echo "true"; fi
+
 3.windows xp命令行内操作指令
     编译项目工程
     C:\Keil_v5\UV4\UV4.exe -r D:\xp_sp\stm32\led\USER\LED.uvprojx -o D:\xp_cmdline\Build_Output.txt
 
-VBoxManage guestcontrol "xp-keil" -v run  --exe "C:\Keil_v5\UV4\UV4.exe" --username Administrator -- UV4.exe -r "D:\xp_sp\stm32\led\USER\LED.uvprojx" -o "D:\xp_sp\stm32\led\Build_Output.txt"
 启动与管理虚拟机
 启动虚拟机
 
@@ -39,3 +44,6 @@ VBoxManage controlvm UbuntuRDHome acpipowerbutton
 管理虚拟机更多命令
 
 VBoxManage controlvm UbuntuRDHome XXX
+
+#判断虚拟机工作状态
+vboxmanage guestcontrol "xp-keil" stat "C:\Keil_v5\UV4\UV4.exe" --username Administrator

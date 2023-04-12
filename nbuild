@@ -1,16 +1,17 @@
 #!/bin/bash
 
 #编译器工具相关配置
-VBOX_SP_MACHINE_NAEM="xp-keil"
+VBOX_SP_MACHINE_NAME="xp-keil"
 VBOX_SP_USER_NAME="Administrator"
 VBOX_BUILD_PLATFORM_PROGRAM="C:\Keil_v5\UV4\UV4.exe"
 VBOX_BUILD_EXE_NAEM="UV4.exe"
+VBOX_MACHINE_START_TIME=45
 # VBOX_BUILD_PLATFORM_PATH="C:\Keil_v5\UV4"
 
 #项目工程文件配置
 #打包文件夹路径
 SERVER_SP_PACKAGES_PATH="/home/dyj/User_Code/win_xp_sfile"
-
+PROJECT_NAME="SP"
 
 # server端源码相关配置
 SERVER_SP_PROJECT_NAME="/home/dyj/User_Share/xp_sp/stm32/led/USER/LED.uvprojx"
@@ -26,13 +27,39 @@ VBOX_SP_OUTPUT_LOG_NAME="D:\xp_sp\stm32\led\Build_Output.txt"
 # VBOX_SP_OUTPUT_PATH="D:\xp_sp\stm32\led"
 
 #LOG输出日志
-VBOX_LOGO="SP PROJECT BUILD START"
-echo $VBOX_SP_MACHINE_NAEM
-echo $VBOX_BUILD_PLATFORM_PROGRAM
+VBOX_LOGO="/************SP PROJECT BUILD START************/"
+echo -e "\n"
+echo $VBOX_LOGO
+echo "Virtual Machine Name  : $VBOX_SP_MACHINE_NAME"
+echo "Project IDE           : $VBOX_BUILD_PLATFORM_PROGRAM"
+echo -e "\n"
 
 #判断虚拟guest machine是否在线，如果在线则关闭重启或等待
-#启动无图形化界面编译器系统平台 --type headless
-# VBoxManage startvm "xp-keil" --type headless
+if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then
+    echo "virtual machine is online"
+else
+    #启动无图形化界面编译器系统平台 --type headless
+    VBoxManage startvm $VBOX_SP_MACHINE_NAME --type headless
+    echo "waiting for virtual machine '$VBOX_SP_MACHINE_NAME' start....."
+    echo "waiting for at least $VBOX_MACHINE_START_TIME seconds....."
+    #等待虚拟guest machine是否在线
+    for ((i=1;i<=60;i++))
+    do
+        if (( i > $VBOX_MACHINE_START_TIME ));then
+            if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then
+                echo "virtual machine is online"
+                break
+            elif (( i >= 60 ));then
+                exit -1
+            else
+                sleep 1s
+            fi
+        else
+            sleep 1s
+        fi
+    done
+fi
+
 
 #清理编译产生的中间文件
 rm -rf $SERVER_SP_OUTPUT_DATA
@@ -42,11 +69,16 @@ rm -rf $SERVER_SP_OUTPUT_DATA
 
 
 #启动sp编译流程
-VBoxManage guestcontrol $VBOX_SP_MACHINE_NAEM -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_LOG_NAME
+echo "sp building......."
+VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_LOG_NAME > /dev/null
 
+#判断是否编译成功,复制生成的文件进入到打包路径中
+if [ -f $SERVER_SP_OUTPUT_TARGET ]; then
+   echo "$PROJECT_NAME Build Success!"
+   cp $SERVER_SP_OUTPUT_TARGET $SERVER_SP_PACKAGES_PATH
+   VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
+   echo "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
+else
+   echo "$PROJECT_NAME Build Failed!"
+fi
 
-
-
-#复制生成的文件进入到打包路径中
-
-cp $SERVER_SP_OUTPUT_TARGET $SERVER_SP_PACKAGES_PATH
