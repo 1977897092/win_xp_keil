@@ -4,6 +4,12 @@
     xp-keil
 
 2.linux命令行内操作指令
+    注册虚拟机
+    VBoxManage registervm /home3/dengyanjun/vbox/xp-keil/xp-keil.vbox
+    注销虚拟机
+    VBoxManage unregistervm xp-keil
+
+
     启动虚拟机指令
         VBoxManage startvm "xp-keil" --type headless
     关闭虚拟机指令

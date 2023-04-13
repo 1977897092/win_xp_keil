@@ -6,7 +6,6 @@ VBOX_SP_USER_NAME="Administrator"
 VBOX_BUILD_PLATFORM_PROGRAM="C:\Keil_v5\UV4\UV4.exe"
 VBOX_BUILD_EXE_NAEM="UV4.exe"
 VBOX_MACHINE_START_TIME=45
-# VBOX_BUILD_PLATFORM_PATH="C:\Keil_v5\UV4"
 
 #项目工程文件配置
 #项目源码拉取本地后储存位置
@@ -28,8 +27,6 @@ SERVER_SP_OUTPUT_DATA="$SERVER_SP_OUTPUT_PATH/* $SERVER_SP_PACKAGES_PATH/* $SERV
 VBOX_SP_SHARE_FOLDER="sp_src"
 VBOX_SP_PROJECT_NAME="D:\xp_sp\stm32\led\USER\LED.uvprojx"
 VBOX_SP_OUTPUT_LOG_NAME="D:\xp_sp\stm32\led\Build_Output.txt"
-# VBOX_SP_SRC_PATH="D:\xp_sp\stm32\led\USER"
-# VBOX_SP_OUTPUT_PATH="D:\xp_sp\stm32\led"
 
 #LOG输出日志
 VBOX_LOGO="/************SP PROJECT BUILD START************/"
@@ -39,6 +36,31 @@ echo "Server Project Src Path   : $SERVER_PROJECT_SRC_PATH"
 echo "Virtual Machine Name      : $VBOX_SP_MACHINE_NAME"
 echo "Project IDE               : $VBOX_BUILD_PLATFORM_PROGRAM"
 echo -e "\n"
+
+#创建编译虚拟机
+Vbox_Virtual_Machine_Create()
+{
+    VBoxManage registervm "$SERVER_PROJECT_SRC_PATH/$VBOX_SP_MACHINE_NAME/$VBOX_SP_MACHINE_NAME.vbox"
+}
+
+#本地虚拟机查询
+Vbox_Virtual_Machine_Search()
+{
+    
+    if VBoxManage list vms |grep $VBOX_SP_MACHINE_NAME;then
+        echo  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is exist"   
+    else
+        echo  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is not exist"
+        echo  "Now Start To Create Virtual Machine '$VBOX_SP_MACHINE_NAME'"
+        Vbox_Virtual_Machine_Create
+        if VBoxManage list vms |grep $VBOX_SP_MACHINE_NAME;then
+            echo  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is register success"
+        else
+            echo  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is register error"
+        fi
+    fi
+}
+
 
 #将server端共享文件夹挂载到虚拟目标机上(guest)。
 Vbox_Mount_Share_Folder()
@@ -103,6 +125,7 @@ Vbox_Start_Pack()
 }
 
 #判断虚拟guest machine是否在线，如果在线则关闭重启或等待
+Vbox_Virtual_Machine_Search
 if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then 
     echo "virtual machine is online"
     VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
