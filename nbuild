@@ -14,6 +14,7 @@ SERVER_SP_PACKAGES_PATH="/home/dyj/User_Code/win_xp_sfile"
 PROJECT_NAME="SP"
 
 # server端源码相关配置
+SERVER_SP_SRC_PATH="/home/dyj/User_Share"
 SERVER_SP_PROJECT_NAME="/home/dyj/User_Share/xp_sp/stm32/led/USER/LED.uvprojx"
 SERVER_SP_OUTPUT_PATH="/home/dyj/User_Share/xp_sp/stm32/led/OBJ"
 SERVER_SP_OUTPUT_TARGET="/home/dyj/User_Share/xp_sp/stm32/led/OBJ/LED.axf"
@@ -21,6 +22,7 @@ SERVER_SP_OUTPUT_LOG_NAME="/home/dyj/User_Share/xp_sp/stm32/led/Build_Output.txt
 SERVER_SP_OUTPUT_DATA="$SERVER_SP_OUTPUT_PATH/* $SERVER_SP_PACKAGES_PATH/* $SERVER_SP_OUTPUT_LOG_NAME"
 
 # winxp端相关配置
+VBOX_SP_SHARE_FOLDER="sp_src"
 VBOX_SP_PROJECT_NAME="D:\xp_sp\stm32\led\USER\LED.uvprojx"
 VBOX_SP_OUTPUT_LOG_NAME="D:\xp_sp\stm32\led\Build_Output.txt"
 # VBOX_SP_SRC_PATH="D:\xp_sp\stm32\led\USER"
@@ -34,10 +36,21 @@ echo "Virtual Machine Name  : $VBOX_SP_MACHINE_NAME"
 echo "Project IDE           : $VBOX_BUILD_PLATFORM_PROGRAM"
 echo -e "\n"
 
-#判断虚拟guest machine是否在线，如果在线则关闭重启或等待
-if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then
-    echo "virtual machine is online"
-else
+#将server端共享文件夹挂载到虚拟目标机上(guest)。
+Vbox_Mount_Share_Folder()
+{
+    if VBoxManage showvminfo $VBOX_SP_MACHINE_NAME|grep "Shared folders"|grep "none";then
+        VBoxManage sharedfolder add $VBOX_SP_MACHINE_NAME --name $VBOX_SP_SHARE_FOLDER --hostpath $SERVER_SP_SRC_PATH --automount 
+    else
+        VBoxManage sharedfolder remove "xp-keil" --name $VBOX_SP_SHARE_FOLDER
+        VBoxManage sharedfolder add $VBOX_SP_MACHINE_NAME --name $VBOX_SP_SHARE_FOLDER --hostpath $SERVER_SP_SRC_PATH --automount 
+    fi
+
+}
+
+#启动编译平台及编译器
+Vbox_Start_Compiler()
+{
     #启动无图形化界面编译器系统平台 --type headless
     VBoxManage startvm $VBOX_SP_MACHINE_NAME --type headless
     echo "waiting for virtual machine '$VBOX_SP_MACHINE_NAME' start....."
@@ -58,27 +71,41 @@ else
             sleep 1s
         fi
     done
-fi
+}
 
+Vbox_Start_Build()
+{
 
-#清理编译产生的中间文件
-rm -rf $SERVER_SP_OUTPUT_DATA
+    #清理编译产生的中间文件
+    rm -rf $SERVER_SP_OUTPUT_DATA
+    #启动sp编译流程
+    echo "sp building......."
+    VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_LOG_NAME > /dev/null
 
-#将server端共享文件夹挂载到虚拟目标机上(guest)。
-#输出guest磁盘挂载情况
+}
 
+Vbox_Start_Pack()
+{
+    #判断是否编译成功,复制生成的文件进入到打包路径中
+    if [ -f $SERVER_SP_OUTPUT_TARGET ]; then
+    echo "$PROJECT_NAME Build Success!"
+    cp $SERVER_SP_OUTPUT_TARGET $SERVER_SP_PACKAGES_PATH
+    VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
+    echo "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
+    else
+    echo "$PROJECT_NAME Build Failed!"
+    fi
 
-#启动sp编译流程
-echo "sp building......."
-VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_LOG_NAME > /dev/null
+}
 
-#判断是否编译成功,复制生成的文件进入到打包路径中
-if [ -f $SERVER_SP_OUTPUT_TARGET ]; then
-   echo "$PROJECT_NAME Build Success!"
-   cp $SERVER_SP_OUTPUT_TARGET $SERVER_SP_PACKAGES_PATH
-   VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
-   echo "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
+#判断虚拟guest machine是否在线，如果在线则关闭重启或等待
+if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then 
+    echo "virtual machine is online"
+    VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
+    echo "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
 else
-   echo "$PROJECT_NAME Build Failed!"
+    Vbox_Mount_Share_Folder
+    Vbox_Start_Compiler
+    Vbox_Start_Build
+    Vbox_Start_Pack
 fi
-

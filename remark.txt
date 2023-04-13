@@ -14,6 +14,26 @@
         VBoxManage guestcontrol "xp-keil" -v run  --exe "C:\Keil_v5\UV4\UV4.exe" --username Administrator -- UV4.exe -r "D:\xp_sp\stm32\led\USER\LED.uvprojx" -o "D:\xp_sp\stm32\led\Build_Output.txt"
     判断虚拟机是否完成启动
         VBoxManage guestcontrol "xp-keil" stat "C:\Keil_v5\UV4\UV4.exe" --username Administrator | grep "found"
+    查看虚拟机状态
+        VBoxManage list vms --long
+    共享文件夹
+        1.将主机的/home/vbox目录共享给Guest虚拟机centos-7-20210521，且共享名为share
+        VBoxManage sharedfolder add "xp-keil" --name sp_src --hostpath "/home/dyj/User_Share/xp_sp" --automount
+        VBoxManage sharedfolder remove "xp-keil" --name sp_src
+        VBoxManage sharedfolder remove "xp-keil" --name User_Share
+        //该命令必须在关闭虚拟机之后才能执行
+
+        2.将主机的/home/vbox目录瞬间共享给Guest虚拟机centos-7-20210521，且共享名为share
+        VBoxManage sharedfolder add "xp-keil" --name sp_src --hostpath "/home/dyj/User_Share/xp_sp" --transient --automount
+        //该命令在虚拟机运行时就可以执行，但当虚拟机关闭（指虚拟机的状态为poweroff）后该共享文件夹不会保留
+
+        3.移除虚拟机挂载的共享目录
+        VBoxManage sharedfolder remove "xp-keil" --name sp_src --transient
+
+        4.列举已挂载共享文件夹
+        VBoxManage list vms  --long | grep "Shared folders"
+        //检测虚拟机是否没有共享文件夹
+        VBoxManage showvminfo "xp-keil"|grep "Shared folders"|grep "none"
 
 if echo "hello" | grep "e"; then echo "true"; fi
 
