@@ -9,16 +9,19 @@ VBOX_MACHINE_START_TIME=45
 # VBOX_BUILD_PLATFORM_PATH="C:\Keil_v5\UV4"
 
 #项目工程文件配置
+#项目源码拉取本地后储存位置
+SERVER_PROJECT_SRC_PATH=$(dirname "$PWD")
+
 #打包文件夹路径
-SERVER_SP_PACKAGES_PATH="/home/dyj/User_Code/win_xp_sfile"
+SERVER_SP_PACKAGES_PATH="$SERVER_PROJECT_SRC_PATH/win_xp_sfile"
 PROJECT_NAME="SP"
 
 # server端源码相关配置
-SERVER_SP_SRC_PATH="/home/dyj/User_Share"
-SERVER_SP_PROJECT_NAME="/home/dyj/User_Share/xp_sp/stm32/led/USER/LED.uvprojx"
-SERVER_SP_OUTPUT_PATH="/home/dyj/User_Share/xp_sp/stm32/led/OBJ"
-SERVER_SP_OUTPUT_TARGET="/home/dyj/User_Share/xp_sp/stm32/led/OBJ/LED.axf"
-SERVER_SP_OUTPUT_LOG_NAME="/home/dyj/User_Share/xp_sp/stm32/led/Build_Output.txt"
+SERVER_SP_SRC_PATH="$SERVER_PROJECT_SRC_PATH"
+SERVER_SP_PROJECT_NAME="$SERVER_SP_SRC_PATH/xp_sp/stm32/led/USER/LED.uvprojx"
+SERVER_SP_OUTPUT_PATH="$SERVER_SP_SRC_PATH/xp_sp/stm32/led/OBJ"
+SERVER_SP_OUTPUT_TARGET="$SERVER_SP_SRC_PATH/xp_sp/stm32/led/OBJ/LED.axf"
+SERVER_SP_OUTPUT_LOG_NAME="$SERVER_SP_SRC_PATH/xp_sp/stm32/led/Build_Output.txt"
 SERVER_SP_OUTPUT_DATA="$SERVER_SP_OUTPUT_PATH/* $SERVER_SP_PACKAGES_PATH/* $SERVER_SP_OUTPUT_LOG_NAME"
 
 # winxp端相关配置
@@ -32,8 +35,9 @@ VBOX_SP_OUTPUT_LOG_NAME="D:\xp_sp\stm32\led\Build_Output.txt"
 VBOX_LOGO="/************SP PROJECT BUILD START************/"
 echo -e "\n"
 echo $VBOX_LOGO
-echo "Virtual Machine Name  : $VBOX_SP_MACHINE_NAME"
-echo "Project IDE           : $VBOX_BUILD_PLATFORM_PROGRAM"
+echo "Server Project Src Path   : $SERVER_PROJECT_SRC_PATH"
+echo "Virtual Machine Name      : $VBOX_SP_MACHINE_NAME"
+echo "Project IDE               : $VBOX_BUILD_PLATFORM_PROGRAM"
 echo -e "\n"
 
 #将server端共享文件夹挂载到虚拟目标机上(guest)。
