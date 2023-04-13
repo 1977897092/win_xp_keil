@@ -5,7 +5,8 @@ VBOX_SP_MACHINE_NAME="xp-keil"
 VBOX_SP_USER_NAME="Administrator"
 VBOX_BUILD_PLATFORM_PROGRAM="C:\Keil_v5\UV4\UV4.exe"
 VBOX_BUILD_EXE_NAEM="UV4.exe"
-VBOX_MACHINE_START_TIME=45
+VBOX_MACHINE_START_TIME=60
+VBOX_MACHINE_START_TIME_MAX=120
 
 #项目工程文件配置
 #项目源码拉取本地后储存位置
@@ -82,13 +83,15 @@ Vbox_Start_Compiler()
     echo "waiting for virtual machine '$VBOX_SP_MACHINE_NAME' start....."
     echo "waiting for at least $VBOX_MACHINE_START_TIME seconds....."
     #等待虚拟guest machine是否在线
-    for ((i=1;i<=60;i++))
+    for ((i=0;i<=$VBOX_MACHINE_START_TIME_MAX;i++))
     do
         if (( i > $VBOX_MACHINE_START_TIME ));then
             if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then
                 echo "virtual machine is online"
                 break
-            elif (( i >= 60 ));then
+            #超时退出
+            elif (( i >= $VBOX_MACHINE_START_TIME_MAX ));then
+                echo "virtual machine start too long.maybe virtual machine is error. so stop start "
                 exit -1
             else
                 sleep 1s
