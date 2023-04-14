@@ -78,6 +78,11 @@ Vbox_Mount_Share_Folder()
 #启动编译平台及编译器
 Vbox_Start_Compiler()
 {
+    local ratio_length=50
+    local wait_time=$VBOX_MACHINE_START_TIME
+    local mark=''
+    local ratio
+    local delay_time
     #启动无图形化界面编译器系统平台 --type headless
     VBoxManage startvm $VBOX_SP_MACHINE_NAME --type headless
     echo "waiting for virtual machine '$VBOX_SP_MACHINE_NAME' start....."
@@ -85,7 +90,7 @@ Vbox_Start_Compiler()
     #等待虚拟guest machine是否在线
     for ((i=0;i<=$VBOX_MACHINE_START_TIME_MAX;i++))
     do
-        if (( i > $VBOX_MACHINE_START_TIME ));then
+        if (( i > $wait_time ));then
             if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then
                 echo "virtual machine is online"
                 break
@@ -97,7 +102,14 @@ Vbox_Start_Compiler()
                 sleep 1s
             fi
         else
-            sleep 1s
+            delay_time=`awk 'BEGIN{printf "%.2f\n",'$wait_time'/'$ratio_length'}'`
+            ratio=`awk 'BEGIN{printf "%.2f\n",'$i'*'100'/'$wait_time'}'`
+            printf "progress:[%-60s]%.2f%%\r" "${mark}" "${ratio}"
+            sleep $delay_time
+            mark="#${mark}"
+            if (( i == $wait_time ));then
+                echo ""
+            fi
         fi
     done
 }
@@ -110,6 +122,8 @@ Vbox_Start_Build()
     #启动sp编译流程
     echo "sp building......."
     VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_LOG_NAME > /dev/null
+    #检测keil是否启动，如启动怎么输出log
+    cat $SERVER_SP_OUTPUT_LOG_NAME     
 
 }
 
@@ -117,12 +131,12 @@ Vbox_Start_Pack()
 {
     #判断是否编译成功,复制生成的文件进入到打包路径中
     if [ -f $SERVER_SP_OUTPUT_TARGET ]; then
-    echo "$PROJECT_NAME Build Success!"
-    cp $SERVER_SP_OUTPUT_TARGET $SERVER_SP_PACKAGES_PATH
-    VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
-    echo "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
+        echo "$PROJECT_NAME Build Success!"
+        cp $SERVER_SP_OUTPUT_TARGET $SERVER_SP_PACKAGES_PATH
+        VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
+        echo "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
     else
-    echo "$PROJECT_NAME Build Failed!"
+        echo "$PROJECT_NAME Build Failed!"
     fi
 
 }
