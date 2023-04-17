@@ -38,6 +38,293 @@ echo "Virtual Machine Name      : $VBOX_SP_MACHINE_NAME"
 echo "Project IDE               : $VBOX_BUILD_PLATFORM_PROGRAM"
 echo -e "\n"
 
+# 编译sp.bin
+BuildSP_ASR1803()
+{
+	cd ${N_TOP}
+	
+	#编译器工具相关配置
+	local VBOX_SP_MACHINE_NAME="xp-keil"
+	local VBOX_SP_USER_NAME="Administrator"
+	local VBOX_BUILD_PLATFORM_PROGRAM="C:\Keil_v5\UV4\UV4.exe"
+	local VBOX_BUILD_EXE_NAEM="UV4.exe"
+	local VBOX_MACHINE_START_TIME=60
+	local VBOX_MACHINE_START_TIME_MAX=120
+
+	#项目工程文件配置
+	#项目源码拉取本地后储存位置
+	local SERVER_PROJECT_SRC_PATH="$N_TOP/sp"
+	local SERVER_SP_SRC_PATH="$SERVER_PROJECT_SRC_PATH/src"
+
+
+	if [ "${N_SUB_PARAM}" == "core" ]; then
+		# 服务器端源码相关配置
+		local PROJECT_NAME="SP core"
+		local SERVER_SP_PROJECT_NAME="$SERVER_SP_SRC_PATH/core/projects/projects.uvprojx"
+		local SERVER_SP_OUTPUT_PATH="$SERVER_SP_SRC_PATH/core/projects/Obj"
+		local SERVER_SP_OUTPUT_TARGET="$SERVER_SP_SRC_PATH/core/out/core.bin"
+		local SERVER_SP_OUTPUT_LOG_NAME="$SERVER_SP_SRC_PATH/core/out/Build_Output.txt"
+
+		# 编译器系统平台端相关配置
+		local VBOX_SP_SHARE_FOLDER="sp_src"
+		local VBOX_SP_PROJECT_NAME="D:\core\projects\projects.uvprojx"
+		local VBOX_SP_OUTPUT_LOG_NAME="D:\core\out\Build_Output.txt"
+	elif [ "${N_SUB_PARAM}" == "boot" ]; then
+		# 服务器端源码相关配置
+		local PROJECT_NAME="SP boot"
+		local SERVER_SP_PROJECT_NAME="$SERVER_SP_SRC_PATH/boot/projects/projects.uvprojx"
+		local SERVER_SP_OUTPUT_PATH="$SERVER_SP_SRC_PATH/boot/projects/Obj"
+		local SERVER_SP_OUTPUT_TARGET="$SERVER_SP_SRC_PATH/boot/out/boot.bin"
+		local SERVER_SP_OUTPUT_LOG_NAME="$SERVER_SP_SRC_PATH/boot/out/Build_Output.txt"
+
+		# 编译器系统平台端相关配置
+		local VBOX_SP_SHARE_FOLDER="sp_src"
+		local VBOX_SP_PROJECT_NAME="D:\boot\projects\projects.uvprojx"
+		local VBOX_SP_OUTPUT_LOG_NAME="D:\boot\out\Build_Output.txt"
+	elif [ "${N_SUB_PARAM}" == "recovery" ]; then
+	# 服务器端源码相关配置
+		local PROJECT_NAME="SP recovery"
+		local SERVER_SP_PROJECT_NAME="$SERVER_SP_SRC_PATH/recovery/projects/projects.uvprojx"
+		local SERVER_SP_OUTPUT_PATH="$SERVER_SP_SRC_PATH/recovery/projects/Obj"
+		local SERVER_SP_OUTPUT_TARGET="$SERVER_SP_SRC_PATH/recovery/out/recovery.bin"
+		local SERVER_SP_OUTPUT_LOG_NAME="$SERVER_SP_SRC_PATH/recovery/out/Build_Output.txt"
+
+		# 编译器系统平台端相关配置
+		local VBOX_SP_SHARE_FOLDER="sp_src"
+		local VBOX_SP_PROJECT_NAME="D:\recovery\projects\projects.uvprojx"
+		local VBOX_SP_OUTPUT_LOG_NAME="D:\recovery\out\Build_Output.txt"
+	else
+		emsg "SP Build : Input Value Is Not Ture"
+		exit -1
+	fi
+
+
+	#编译器编译环境输出日志
+	nmsg "\r\n======================================================"
+	nmsg "             SP BUILD--Project: $N_SUB_PARAM         "
+	nmsg "======================================================"
+	nmsg "Server Project Src Path    : $SERVER_PROJECT_SRC_PATH"
+	nmsg "Virtual Machine Name       : $VBOX_SP_MACHINE_NAME"
+	nmsg "Server Share Folder Path   : $SERVER_SP_SRC_PATH"
+	nmsg "Server Project Target Name : $SERVER_SP_OUTPUT_TARGET"
+	nmsg "Server Project Log Name    : $SERVER_SP_OUTPUT_LOG_NAME"
+	echo "Vbox Share Folder Path     : $VBOX_SP_PROJECT_NAME"
+	echo "Vbox Output Log Path       : $VBOX_SP_OUTPUT_LOG_NAME"
+	echo "Vbox Project IDE           : $VBOX_BUILD_PLATFORM_PROGRAM"
+	nmsg "======================================================"
+
+	#目标工程文件检测--如不存在则退出
+	if [ -f $SERVER_SP_PROJECT_NAME ];then
+    	nmsg  "file:$SERVER_SP_PROJECT_NAME is exist"
+	else
+		emsg  "file:$SERVER_SP_PROJECT_NAME is not exist"
+		exit -1
+	fi
+
+	#本地虚拟机查询--如不存在则创建编译虚拟机
+    if VBoxManage list vms |grep $VBOX_SP_MACHINE_NAME;then
+        nmsg  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is exist"   
+    else
+        nmsg  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is not exist"
+        nmsg  "Now Start To Create Virtual Machine '$VBOX_SP_MACHINE_NAME'"
+		if [ -f "$SERVER_PROJECT_SRC_PATH/vbox/$VBOX_SP_MACHINE_NAME.vbox" ];then
+			VBoxManage registervm "$SERVER_PROJECT_SRC_PATH/vbox/$VBOX_SP_MACHINE_NAME.vbox"
+			if VBoxManage list vms |grep $VBOX_SP_MACHINE_NAME;then
+				echo  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is register success"
+			else
+				echo  "Virtual Machine '$VBOX_SP_MACHINE_NAME' is register error"
+				exit -1
+			fi
+		else
+			emsg "file: '$SERVER_PROJECT_SRC_PATH/vbox/$VBOX_SP_MACHINE_NAME.vbox' is not exist"
+			exit -1
+		fi
+    fi
+	
+	#判断虚拟guest machine是否在线，如果在线则关闭重启或等待
+	if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then 
+		nmsg "virtual machine '$VBOX_SP_MACHINE_NAME' is online"
+		VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
+		nmsg "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
+		exit -1
+	fi
+
+	#将server端共享文件夹挂载到虚拟目标机上(guest)。
+    if VBoxManage showvminfo $VBOX_SP_MACHINE_NAME|grep "Shared folders"|grep "none" > /dev/null;then
+        nmsg "share folder '$VBOX_SP_SHARE_FOLDER' is not exist"
+    else
+		if VBoxManage list vms  --long |grep "$VBOX_SP_SHARE_FOLDER";then
+        	VBoxManage sharedfolder remove $VBOX_SP_MACHINE_NAME --name $VBOX_SP_SHARE_FOLDER
+			nmsg "share folder '$VBOX_SP_SHARE_FOLDER' has been remove"
+		fi
+    fi
+	VBoxManage sharedfolder add $VBOX_SP_MACHINE_NAME --name $VBOX_SP_SHARE_FOLDER --hostpath $SERVER_SP_SRC_PATH --automount
+	if VBoxManage list vms  --long |grep "$VBOX_SP_SHARE_FOLDER";then
+		nmsg "share folder '$VBOX_SP_SHARE_FOLDER' has been mounted"
+	else
+		nmsg "share folder '$VBOX_SP_SHARE_FOLDER' mount failed"
+		exit -1
+	fi
+
+	#启动编译平台及编译器
+    local ratio_length=50
+    local wait_time=$VBOX_MACHINE_START_TIME
+    local mark=''
+    local ratio
+    local delay_time
+    #启动无图形化界面编译器系统平台 --type headless
+    VBoxManage startvm $VBOX_SP_MACHINE_NAME --type headless
+    nmsg "waiting for virtual machine '$VBOX_SP_MACHINE_NAME' start....."
+    nmsg "waiting for at least $VBOX_MACHINE_START_TIME seconds....."
+    #等待虚拟guest machine是否在线
+    for ((i=0;i<=$VBOX_MACHINE_START_TIME_MAX;i++))
+    do
+        if (( i > $wait_time ));then
+            if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then
+                nmsg "virtual machine is online"
+                break
+            #超时退出
+            elif (( i >= $VBOX_MACHINE_START_TIME_MAX ));then
+                emsg "virtual machine start too long.maybe virtual machine is error. so stop start "
+                exit -1
+            else
+                sleep 1s
+            fi
+        else
+            delay_time=`awk 'BEGIN{printf "%.2f\n",'$wait_time'/'$ratio_length'}'`
+            ratio=`awk 'BEGIN{printf "%.2f\n",'$i'*'100'/'$wait_time'}'`
+            printf "progress:[%-60s]%.2f%%\r" "${mark}" "${ratio}"
+            sleep $delay_time
+            mark="#${mark}"
+            if (( i == $wait_time ));then
+                echo ""
+            fi
+        fi
+    done
+
+    #清理编译产生的目标文件
+	if [ -f $SERVER_SP_OUTPUT_TARGET ];then
+    	rm -rf $SERVER_SP_OUTPUT_TARGET
+	fi
+	if [ -f $SERVER_SP_OUTPUT_LOG_NAME ];then
+    	rm -rf $SERVER_SP_OUTPUT_LOG_NAME
+	fi
+
+	#清理编译产生的链接文件文件夹
+	if [ -d $SERVER_SP_OUTPUT_PATH ];then
+    	rm -rf $SERVER_SP_OUTPUT_PATH
+	fi
+
+    #启动sp编译流程
+    nmsg "sp building......."
+    VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME -v run  --exe $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME -- $VBOX_BUILD_EXE_NAEM -r $VBOX_SP_PROJECT_NAME -o $VBOX_SP_OUTPUT_LOG_NAME > /dev/null
+
+    #判断是否编译成功
+    if [ -f $SERVER_SP_OUTPUT_TARGET ]; then
+        nmsg "$PROJECT_NAME Build Success!"
+        VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
+        nmsg "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
+    else
+        emsg "$PROJECT_NAME Build Failed!"
+		exit -1
+    fi
+	
+	cd ${N_TOP}
+	exit 0
+}
+CleanSP_ASR1803()
+{
+	cd ${N_TOP}
+	
+	#编译器工具相关配置
+	local VBOX_SP_MACHINE_NAME="xp-keil"
+	local VBOX_SP_USER_NAME="Administrator"
+	local VBOX_BUILD_PLATFORM_PROGRAM="C:\Keil_v5\UV4\UV4.exe"
+	local VBOX_BUILD_EXE_NAEM="UV4.exe"
+	local VBOX_MACHINE_START_TIME=60
+	local VBOX_MACHINE_START_TIME_MAX=120
+
+	#项目工程文件配置
+	#项目源码拉取本地后储存位置
+	local SERVER_PROJECT_SRC_PATH="$N_TOP/sp"
+	local SERVER_SP_SRC_PATH="$SERVER_PROJECT_SRC_PATH/src"
+
+
+	if [ "${N_SUB_PARAM}" == "core" ]; then
+		# 服务器端源码相关配置
+		local PROJECT_NAME="SP core"
+		local SERVER_SP_PROJECT_NAME="$SERVER_SP_SRC_PATH/core/projects/projects.uvprojx"
+		local SERVER_SP_OUTPUT_PATH="$SERVER_SP_SRC_PATH/core/projects/Obj"
+		local SERVER_SP_OUTPUT_TARGET="$SERVER_SP_SRC_PATH/core/out/core.bin"
+		local SERVER_SP_OUTPUT_LOG_NAME="$SERVER_SP_SRC_PATH/core/out/Build_Output.txt"
+
+		# 编译器系统平台端相关配置
+		local VBOX_SP_SHARE_FOLDER="sp_src"
+		local VBOX_SP_PROJECT_NAME="D:\core\projects\projects.uvprojx"
+		local VBOX_SP_OUTPUT_LOG_NAME="D:\core\out\Build_Output.txt"
+	elif [ "${N_SUB_PARAM}" == "boot" ]; then
+		# 服务器端源码相关配置
+		local PROJECT_NAME="SP boot"
+		local SERVER_SP_PROJECT_NAME="$SERVER_SP_SRC_PATH/boot/projects/projects.uvprojx"
+		local SERVER_SP_OUTPUT_PATH="$SERVER_SP_SRC_PATH/boot/projects/Obj"
+		local SERVER_SP_OUTPUT_TARGET="$SERVER_SP_SRC_PATH/boot/out/core.bin"
+		local SERVER_SP_OUTPUT_LOG_NAME="$SERVER_SP_SRC_PATH/boot/out/Build_Output.txt"
+
+		# 编译器系统平台端相关配置
+		local VBOX_SP_SHARE_FOLDER="sp_src"
+		local VBOX_SP_PROJECT_NAME="D:\boot\projects\projects.uvprojx"
+		local VBOX_SP_OUTPUT_LOG_NAME="D:\boot\out\Build_Output.txt"
+	elif [ "${N_SUB_PARAM}" == "recovery" ]; then
+	# 服务器端源码相关配置
+		local PROJECT_NAME="SP recovery"
+		local SERVER_SP_PROJECT_NAME="$SERVER_SP_SRC_PATH/recovery/projects/projects.uvprojx"
+		local SERVER_SP_OUTPUT_PATH="$SERVER_SP_SRC_PATH/recovery/projects/Obj"
+		local SERVER_SP_OUTPUT_TARGET="$SERVER_SP_SRC_PATH/recovery/out/core.bin"
+		local SERVER_SP_OUTPUT_LOG_NAME="$SERVER_SP_SRC_PATH/recovery/out/Build_Output.txt"
+
+		# 编译器系统平台端相关配置
+		local VBOX_SP_SHARE_FOLDER="sp_src"
+		local VBOX_SP_PROJECT_NAME="D:\recovery\projects\projects.uvprojx"
+		local VBOX_SP_OUTPUT_LOG_NAME="D:\recovery\out\Build_Output.txt"
+	else
+		emsg "SP Build : Input Value Is Not Ture"
+		exit -1
+	fi
+	
+    #清理编译产生的目标文件
+	if [ -f $SERVER_SP_OUTPUT_TARGET ];then
+    	rm -rf $SERVER_SP_OUTPUT_TARGET
+	fi
+	if [ -f $SERVER_SP_OUTPUT_LOG_NAME ];then
+    	rm -rf $SERVER_SP_OUTPUT_LOG_NAME
+	fi
+
+	#清理编译产生的链接文件文件夹
+	if [ -d $SERVER_SP_OUTPUT_PATH ];then
+    	rm -rf $SERVER_SP_OUTPUT_PATH
+	fi
+
+	#清除虚拟机状态
+	if  VBoxManage guestcontrol $VBOX_SP_MACHINE_NAME stat $VBOX_BUILD_PLATFORM_PROGRAM --username $VBOX_SP_USER_NAME | grep "found" > /dev/null ;then 
+		nmsg "virtual machine is online"
+		VBoxManage controlvm $VBOX_SP_MACHINE_NAME poweroff > /dev/null
+		nmsg "virtual machine '$VBOX_SP_MACHINE_NAME' has been power off"
+	fi
+
+	#卸载共享文件夹
+	if VBoxManage list vms  --long |grep "$VBOX_SP_SHARE_FOLDER";then
+		VBoxManage sharedfolder remove $VBOX_SP_MACHINE_NAME --name $VBOX_SP_SHARE_FOLDER
+		nmsg "share folder '$VBOX_SP_SHARE_FOLDER' has been remove"
+	fi
+
+	dmsg "\n\r$PROJECT_NAME Clean Success!\n\r"
+
+	cd ${N_TOP}
+	exit 0
+
+}
+
+
 #创建编译虚拟机
 Vbox_Virtual_Machine_Create()
 {
